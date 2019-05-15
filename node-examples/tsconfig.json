@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    /* Basic Options */
+    "outDir": "JS",
+    "target": "es6",
+    "module": "commonjs",
+  }
+}
