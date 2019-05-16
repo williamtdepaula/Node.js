@@ -1,24 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const restify = require("restify");
-const server = restify.createServer({
-    name: 'meat-api',
-    version: '1.0.0',
+const server_1 = require("./server/server");
+const server = new server_1.Server();
+server.bootstrap().then(server => {
+    console.log('Server is listening on:', server.application.address());
+}).catch(e => {
+    console.log('Server failed to start');
+    console.error(error);
+    process.exit(1); //Terminar a aplicação
 });
-server.get('/hello', (req, resp, next) => {
-    //resp.contentType = 'application/json'
-    resp.setHeader('Content-Type', 'application/json');
-    resp.status(400);
-    resp.send({ message: 'hello' });
-    //resp.json({ message: 'hello' })
-    /*
-    resp.json faz as seguintes funções:
-        resp.setHeader('Content-Type', 'application/json')
-        resp.send({ message: 'hello' })
-    mas o send é capaz de fazer isso tbm
-    */
-    return next(); //Terminou
-});
-server.listen(3000, () => {
-    console.log('API is running on http://localhost:3000');
-});
+/*********************** O HEADER ESTÁ NO PROTOCOLO ENTÃO ESTÁ NA REQUISIÇÃO E NA RESPOSTA **********************/
+//FUNÇÕES (req, resp, next)
+/*
+    req: coisas que estão vindo da requisição
+    resp: resposta que iremos retornar para a requisição
+    next: Pode ser para indicar que a requisição finalizou, ou passar para o
+          próximo callback da requisição (PODE-SE PASSAR UM ARRAY DE CALLBACKS NA REQUISIÇÃO)
+*/
+//Setar Headers
+/*
+    resp.setHeader('Content-Type', 'application/json')
+*/
+//Setar Status
+/*
+    resp.status(400)
+*/
+//ENVIAR RESPOSTA
+/*
+    resp.send({ message: 'hello' })
+                ou
+    resp.json({ message: 'hello' })
+*/ 
