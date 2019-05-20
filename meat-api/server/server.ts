@@ -1,10 +1,21 @@
 import * as restify from 'restify'
+import * as mongoose from 'mongoose'
+import { environment } from '../common/environment'
+import { Router } from '../common/router'
 
 export class Server {
 
     application: restify.Server
 
-    initRoutes(): Promise<any> {
+    initializeDb(): mongoose.MongooseThenable{
+        (<any>mongoose).Promise = global.Promise
+        return mongoose.connect(environment.db.url, {
+            useMongoClient: true,
+
+        })
+    }
+
+    initRoutes(routers): Promise<any> {
         return new Promise((resolve, reject) => {
             try {
 
@@ -14,63 +25,17 @@ export class Server {
                 })
 
                 this.application.use(restify.plugins.queryParser())//Configurando para pegar os paramentros passado na url
+                this.application.use(restify.plugins.bodyParser())//Transforma os parametros da requisição em um objeto JSON
 
-                this.application.listen(3000, () => {//Qual porta queremos ouvir
+                this.application.listen(environment.server.port, () => {//Qual porta queremos ouvir
                     resolve(this.application)
                 })
 
                 //routes
 
-                /********************* EXEMPLO *********************/
-                this.application.get('/hello', (req, resp, next) => {
-
-                    //resp.contentType = 'application/json'
-                    resp.setHeader('Content-Type', 'application/json')
-                    resp.status(400)
-                    resp.send({ message: 'hello' })
-                    //resp.json({ message: 'hello' })
-                    /*
-                    resp.json faz as seguintes funções: 
-                        resp.setHeader('Content-Type', 'application/json') ou resp.contentType = 'application/json'
-                        resp.send({ message: 'hello' })
-                    mas o send é capaz de fazer isso tbm
-                    */
-
-                    return next()//Terminou
-                })
-
-                this.application.get('/info', [
-                    (req, resp, next) => {
-                        if (req.userAgent() && req.userAgent().includes('MSI')) {//caso o navegador seja o MSI ele da erro
-                            /*resp.status(400)
-                            resp.json({message: 'Please, update your browser'})*/
-                            let error: any = new Error()
-                            error.statusCode = 400
-                            error.message = 'Please, update your browser'
-                            return next(error)
-                        }
-
-                        return next()//passa para a próxima callback, se chamar next(false), não passa para a próxima requisição
-                    },
-                    (req, resp, next) => {
-
-                        resp.json({
-                            browser: req.userAgent(),//QUAL NAVEGADOR ESTÁ SENDO USADO PARA SER FEITA A REQUISIÇÃO
-                            method: req.method,//Qual método, por exemplo HTTP
-                            url: req.href(), // Ou req.url
-                            path: req.path(), //Caminho da rota
-                            query: req.query//Configurado acima, usado para pegar os paramentros passado na url 
-                        })
-
-                        return next()
-                    }])
-
-
-
-                /*this.application.on('error', (err) => {
-                    console.log(err)
-                }) CASO EU QUEIRA QUE FAÇA UM TRATAMENTO CASO OCORRA UM ERRO, 
-                    MAS QUEREMOS QUE APLICAÇÃO PARE CASO DE ERRO*/
+                for (let router of routers) {
+                    router.applyRoutes(this.application)
+                }
 
             } catch (error) {
                 reject(error)
@@ -78,7 +43,11 @@ export class Server {
         })
     }
 
-    bootstrap(): Promise<Server> {
-        return this.initRoutes().then(() => this)
+    bootstrap(routers: Router[] = []): Promise<Server> {
+        return this.initializeDb().then(() =>
+            this.initRoutes(routers).then(() =>
+                this
+            )
+        )
     }
 }
